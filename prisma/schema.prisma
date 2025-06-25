@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"] // Enable the preview feature for full-text search
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id                    String         @id
+  username              String         @unique
+  displayName           String
+  email                 String?        @unique
+  passwordHash          String?
+  googleId              String?        @unique
+  avatarUrl             String?
+  bio                   String?
+  sessions              Session[] // User sessions for authentication
+  posts                 Post[]
+  following             Follow[]       @relation("Following")
+  followers             Follow[]       @relation("Followers")
+  likes                 Like[]
+  bookmarks             Bookmark[]
+  comments              Comment[]
+  receivedNotifications Notification[] @relation("Recipient") // Notifications received by the user
+  issuedNotifications   Notification[] @relation("Issuer") // Notifications issued by the user
+
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Follow {
+  followerId  String
+  follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Post {
+  id                  String         @id @default(cuid())
+  content             String
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments         Media[] // Media files associated with the post
+  likes               Like[] // Users who liked the post
+  bookmarks           Bookmark[] // Users who bookmarked the post
+  comments            Comment[] // Comments on the post
+  linkedNotifications Notification[] // Notifications linked to the post
+
+  createdAt DateTime @default(now())
+
+  @@map("posts")
+} // Media model to handle images and videos associated with posts 
+
+model Media {
+  id     String    @id @default(cuid())
+  postId String?
+  post   Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  type   MediaType
+  url    String
+
+  createdAt DateTime @default(now())
+
+  @@map("post_media")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Comment {
+  id      String @id @default(cuid()) // Unique identifier for the comment
+  content String // Content of the comment
+  userId  String // User who made the comment
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade) // User who made the comment
+  postId  String // Post on which the comment was made
+  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade) // Post on which the comment was made
+
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+model Like {
+  userId String // User who liked the post
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade) // User who liked the post
+  postId String // Post that was liked 
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade) // Post that was liked
+
+  @@unique([userId, postId]) // Ensure a user can only like a post once
+  @@map("likes") // Map to "likes" table in the database
+}
+
+model Bookmark {
+  id     String @id @default(cuid()) // Unique identifier for the bookmark
+  userId String // User who bookmarked the post
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade) // User who bookmarked the post
+  postId String // Post that was bookmarked
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade) // Post that was bookmarked
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId]) // Ensure a user can only bookmark a post once
+  @@map("bookmarks")
+}
+
+model Notification {
+  id          String           @id @default(cuid()) // Unique identifier for the notification
+  recipientId String // User who receives the notification
+  recipient   User             @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade) // User who receives the notification
+  issuerId    String // User who issued the notification
+  issuer      User             @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade) // User who issued the notification
+  postId      String? // Optional post associated with the notification
+  post        Post?            @relation(fields: [postId], references: [id], onDelete: Cascade) // Post associated with the notification
+  type        NotificationType// Type of notification (like, follow, comment)
+  read        Boolean          @default(false) // Whether the notification has been read
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LIKE
+  FOLLOW
+  COMMENT
+}
