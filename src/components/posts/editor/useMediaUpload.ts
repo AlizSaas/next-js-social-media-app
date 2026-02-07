@@ -54,9 +54,16 @@ export default function useMediaUpload() {
     },
     onUploadError(e) {
       setAttachments((prev) => prev.filter((a) => !a.isUploading)); // Remove failed uploads from state
+      
+  let message = "Upload failed";
+
+  if (e.message.includes("FileSizeMismatch")) {
+    message = "File too big. Max: 4MB images, 64MB videos.";
+  }
+
       toast({
         variant: "destructive",
-        description: e.message,
+        description: message,
       });
     },
   });

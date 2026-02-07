@@ -8,7 +8,7 @@ const f = createUploadthing();
 
 export const fileRouter = {
   avatar: f({
-    image: { maxFileSize: "512KB" }, // 
+    image: { maxFileSize: "2MB" }, // 
   })
     .middleware(async () => {
       const { user } = await validateRequest();
@@ -20,13 +20,13 @@ export const fileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       const oldAvatarUrl = metadata.user.avatarUrl;
 
-      if (oldAvatarUrl) {
-        const key = oldAvatarUrl.split(
-          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-        )[1];
+  if (oldAvatarUrl) {
+  const key = oldAvatarUrl.split("/").pop(); // get last part of URL
+  if (key) {
+    await new UTApi().deleteFiles(key);
+  }
+}
 
-        await new UTApi().deleteFiles(key);
-      }
 
       const newAvatarUrl = file.url.replace(
         "/f/",
