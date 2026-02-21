@@ -69,10 +69,11 @@ export default function PostEditor() {
   }
 
   function onPaste(e: ClipboardEvent<HTMLInputElement>) {
-    const files = Array.from(e.clipboardData.items) // Convert DataTransferItemList to Array 
-      .filter((item) => item.kind === "file") // Filter to only include files
-      .map((item) => item.getAsFile()) as File[]; // Get the File from each DataTransferItem
-    startUpload(files); // Start the upload with the selected files
+    const files = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    startUpload(files);
   }
 
   return (
