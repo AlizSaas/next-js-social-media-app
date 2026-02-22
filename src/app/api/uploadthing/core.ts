@@ -8,7 +8,7 @@ const f = createUploadthing();
 
 export const fileRouter = {
   avatar: f({
-    image: { maxFileSize: "4MB" }, // 
+    image: { maxFileSize: "16MB" }, // 
   })
     .middleware(async () => {
       const { user } = await validateRequest();
@@ -48,7 +48,7 @@ export const fileRouter = {
       return { avatarUrl: newAvatarUrl };
     }),
   attachment: f({
-    image: { maxFileSize: "4MB", maxFileCount: 5 },
+    image: { maxFileSize: "16MB", maxFileCount: 5 },
     video: { maxFileSize: "64MB", maxFileCount: 5 },
   })
     .middleware(async () => {

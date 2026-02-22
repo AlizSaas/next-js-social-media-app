@@ -1,4 +1,5 @@
 import { useToast } from "@/components/ui/use-toast";
+import { compressImage } from "@/lib/compressImage";
 import { useUploadThing } from "@/lib/uploadthing";
 import { useState } from "react";
 
@@ -16,24 +17,25 @@ export default function useMediaUpload() {
   const [uploadProgress, setUploadProgress] = useState<number>();
 
   const { startUpload, isUploading } = useUploadThing("attachment", {
-    onBeforeUploadBegin(files) {
-      const renamedFiles = files.map((file) => {
-        const extension = file.name.split(".").pop();
-        return new File(
-          [file], // Preserve the file content 
-          `attachment_${crypto.randomUUID()}.${extension}`,
-          {
-            type: file.type,
-          },
-        );
-      }); // Rename files to avoid conflicts
+    async onBeforeUploadBegin(files) {
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          const compressed = await compressImage(file);
+          const extension = compressed.name.split(".").pop();
+          return new File(
+            [compressed],
+            `attachment_${crypto.randomUUID()}.${extension}`,
+            { type: compressed.type },
+          );
+        }),
+      ); // Compress images and rename files to avoid conflicts
 
       setAttachments((prev) => [
         ...prev,
-        ...renamedFiles.map((file) => ({ file, isUploading: true })),
+        ...processedFiles.map((file) => ({ file, isUploading: true })),
       ]); // Add new attachments to the end of the state array
 
-      return renamedFiles;
+      return processedFiles;
     },
     
     onUploadProgress: setUploadProgress, // Update upload progress state 
@@ -58,7 +60,7 @@ export default function useMediaUpload() {
   let message = "Upload failed";
 
   if (e.message.includes("FileSizeMismatch")) {
-    message = "File too big. Max: 4MB images, 64MB videos.";
+    message = "File too big. Images are auto-compressed; max 64MB for videos.";
   }
 
       toast({
