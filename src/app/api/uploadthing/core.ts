@@ -28,10 +28,7 @@ export const fileRouter = {
 }
 
 
-      const newAvatarUrl = file.url.replace(
-        "/f/",
-        `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-      );
+      const newAvatarUrl = file.url;
 
       await Promise.all([
         prisma.user.update({
@@ -64,10 +61,7 @@ export const fileRouter = {
     .onUploadComplete(async ({ file }) => {
       const media = await prisma.media.create({
         data: {
-          url: file.url.replace(
-            "/f/",
-            `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-          ),
+          url: file.url,
           type: file.type.startsWith("image") ? "IMAGE" : "VIDEO",
         },
       });
