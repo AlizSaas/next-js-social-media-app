@@ -1,4 +1,5 @@
 import { useToast } from "@/components/ui/use-toast";
+import { compressImage } from "@/lib/compressImage";
 import { PostsPage } from "@/lib/types";
 import { useUploadThing } from "@/lib/uploadthing";
 import { UpdateUserProfileValues } from "@/lib/validation";
@@ -28,9 +29,10 @@ export function useUpdateProfileMutation() {
       values: UpdateUserProfileValues;
       avatar?: File;
     }) => {
+      const compressedAvatar = avatar ? await compressImage(avatar) : undefined;
       return Promise.all([
         updateUserProfile(values),
-        avatar && startAvatarUpload([avatar]),
+        compressedAvatar && startAvatarUpload([compressedAvatar]),
       ]);
     },
     onSuccess: async ([updatedUser, uploadResult]) => {
