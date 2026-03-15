@@ -33,6 +33,7 @@ model User {
   comments              Comment[]
   receivedNotifications Notification[] @relation("Recipient") // Notifications received by the user
   issuedNotifications   Notification[] @relation("Issuer") // Notifications issued by the user
+  passwordResetTokens   PasswordResetToken[] // Password reset tokens
 
   createdAt DateTime @default(now())
 
@@ -147,4 +148,16 @@ enum NotificationType {
   LIKE
   FOLLOW
   COMMENT
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   // Hashed secret portion of token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
 }

@@ -20,6 +20,22 @@ export const loginSchema = z.object({
 
 export type LoginValues = z.infer<typeof loginSchema>;
 
+export const forgotPasswordSchema = z.object({
+  email: requiredString.email("Invalid email address"),
+});
+
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  password: requiredString.min(8, "Must be at least 8 characters"),
+  confirmPassword: requiredString,
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+
 export const createPostSchema = z.object({
   content: requiredString,
   mediaIds: z.array(z.string()).max(5, "Cannot have more than 5 attachments"),
