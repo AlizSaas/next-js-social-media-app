@@ -8,7 +8,6 @@ import {
   MessageInput,
   MessageList,
   Window,
-  useChannelStateContext,
 } from "stream-chat-react";
 
 interface ChatChannelProps {
