@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { MailPlus, X } from "lucide-react";
+import { MailPlus, X, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   ChannelList,
@@ -22,7 +22,7 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
 
   const queryClient = useQueryClient();
 
-  const { channel } = useChatContext(); // Get the current channel from the chat context   
+  const { channel } = useChatContext();
 
   useEffect(() => {
     if (channel?.id) {
@@ -43,10 +43,24 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
     [onClose],
   );
 
+  const EmptyStateIndicator = () => (
+    <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+      <div className="rounded-full bg-muted p-4">
+        <MessageSquare className="size-8 text-muted-foreground" />
+      </div>
+      <div>
+        <p className="font-medium">No conversations yet</p>
+        <p className="text-sm text-muted-foreground">
+          Start a new chat to begin messaging
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div
       className={cn(
-        "size-full flex-col border-e md:flex md:w-72",
+        "size-full flex-col border-e bg-card md:flex md:w-80",
         open ? "flex" : "hidden",
       )}
     >
@@ -57,7 +71,7 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
           members: { $in: [user.id] },
         }}
         showChannelSearch
-        options={{ state: true, presence: true, limit: 8 }}
+        options={{ state: true, presence: true, limit: 10 }}
         sort={{ last_message_at: -1 }}
         additionalChannelSearchProps={{
           searchForChannels: true,
@@ -68,6 +82,7 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
           },
         }}
         Preview={ChannelPreviewCustom}
+        EmptyStateIndicator={EmptyStateIndicator}
       />
     </div>
   );
@@ -82,7 +97,7 @@ function MenuHeader({ onClose }: MenuHeaderProps) {
 
   return (
     <>
-      <div className="flex items-center gap-3 p-2">
+      <div className="flex items-center gap-3 border-b p-3">
         <div className="h-full md:hidden">
           <Button size="icon" variant="ghost" onClick={onClose}>
             <X className="size-5" />
@@ -94,6 +109,7 @@ function MenuHeader({ onClose }: MenuHeaderProps) {
           variant="ghost"
           title="Start new chat"
           onClick={() => setShowNewChatDialog(true)}
+          className="hover:bg-muted"
         >
           <MailPlus className="size-5" />
         </Button>

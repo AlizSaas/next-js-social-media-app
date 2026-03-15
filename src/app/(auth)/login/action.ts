@@ -2,6 +2,7 @@
 
 import { lucia } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import streamServerClient from "@/lib/stream";
 import { loginSchema, LoginValues } from "@/lib/validation";
 import { verify } from "@node-rs/argon2";
 import { isRedirectError } from "next/dist/client/components/redirect";
@@ -41,6 +42,14 @@ export async function login(
         error: "Incorrect username or password",
       };
     }
+
+    // Ensure user is synced with Stream Chat
+    await streamServerClient.upsertUser({
+      id: existingUser.id,
+      username: existingUser.username,
+      name: existingUser.displayName,
+      image: existingUser.avatarUrl,
+    });
 
     const session = await lucia.createSession(existingUser.id, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
