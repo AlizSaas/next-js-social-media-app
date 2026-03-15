@@ -1,11 +1,11 @@
 "use client";
 
-import { Session, User } from "lucia";
+import { AuthUser, AuthSession } from "@/lib/auth";
 import React, { createContext, useContext } from "react";
 
 interface SessionContext {
-  user: User;
-  session: Session;
+  user: AuthUser;
+  session: AuthSession;
 }
 
 const SessionContext = createContext<SessionContext | null>(null);

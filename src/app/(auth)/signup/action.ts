@@ -1,30 +1,20 @@
 "use server";
 
-import { lucia } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import streamServerClient from "@/lib/stream";
 import { signUpSchema, SignUpValues } from "@/lib/validation";
-import { hash } from "@node-rs/argon2";
-import { generateIdFromEntropySize } from "lucia";
+import { headers } from "next/headers";
 import { isRedirectError } from "next/dist/client/components/redirect";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function signUp(
   credentials: SignUpValues,
 ): Promise<{ error: string }> {
   try {
-    const { username, email, password } = signUpSchema.parse(credentials);
+    const { name, username, email, password } = signUpSchema.parse(credentials);
 
-    const passwordHash = await hash(password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
-
-    const userId = generateIdFromEntropySize(10);
-
+    // Check if username already exists
     const existingUsername = await prisma.user.findFirst({
       where: {
         username: {
@@ -40,6 +30,7 @@ export async function signUp(
       };
     }
 
+    // Check if email already exists
     const existingEmail = await prisma.user.findFirst({
       where: {
         email: {
@@ -55,30 +46,30 @@ export async function signUp(
       };
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.create({
-        data: {
-          id: userId,
-          username,
-          displayName: username,
-          email,
-          passwordHash,
-        },
-      }); // Create user in database
-      await streamServerClient.upsertUser({
-        id: userId,
+    // Sign up with Better Auth
+    const result = await auth.api.signUpEmail({
+      body: {
+        name,
+        email,
+        password,
         username,
-        name: username,
-      }); // Create user in Stream
+        displayName: name,
+      },
+      headers: await headers(),
     });
 
-    const session = await lucia.createSession(userId, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
-    cookies().set(
-      sessionCookie.name,
-      sessionCookie.value,
-      sessionCookie.attributes,
-    );
+    if (!result || !result.user) {
+      return {
+        error: "Failed to create account",
+      };
+    }
+
+    // Create user in Stream for chat
+    await streamServerClient.upsertUser({
+      id: result.user.id,
+      username,
+      name,
+    });
 
     return redirect("/");
   } catch (error) {

@@ -19,6 +19,7 @@ import { useForm } from "react-hook-form";
 import {login} from  './action'
 import LoadingButton from '@/components/LoadingButton';
 import {PasswordInput} from "@/components/PasswordInput";
+import Link from "next/link";
 
 
 export default function LoginForm() {
@@ -30,7 +31,7 @@ export default function LoginForm() {
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -49,12 +50,12 @@ export default function LoginForm() {
         {error && <p className="text-center text-destructive">{error}</p>}
         <FormField
           control={form.control}
-          name="username"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="Username" {...field} />
+                <Input placeholder="Email" type="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,6 +74,11 @@ export default function LoginForm() {
             </FormItem>
           )}
         />
+        <div className="text-right">
+          <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+            Forgot password?
+          </Link>
+        </div>
         <LoadingButton loading={isPending} type="submit" className="w-full">
           Log in
         </LoadingButton>

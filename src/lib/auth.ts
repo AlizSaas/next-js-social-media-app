@@ -1,85 +1,98 @@
-import { PrismaAdapter } from "@lucia-auth/adapter-prisma";
-import { Google } from "arctic";
-import { Lucia, Session, User } from "lucia";
-import { cookies } from "next/headers";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { headers } from "next/headers";
 import { cache } from "react";
 import prisma from "./prisma";
 
-const adapter = new PrismaAdapter(prisma.session, prisma.user);
-
-export const lucia = new Lucia(adapter, {
-  sessionCookie: {
-    expires: false,
-    attributes: {
-      secure: process.env.NODE_ENV === "production",
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false, // Set to true if email verification is required
+    sendResetPassword: async ({ user, url }) => {
+      // Dynamic import to avoid build-time errors when RESEND_API_KEY is not set
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      
+      await resend.emails.send({
+        from: process.env.EMAIL_FROM || "noreply@bugbook.app",
+        to: user.email,
+        subject: "Reset your password",
+        html: `
+          <h1>Reset your password</h1>
+          <p>Click the link below to reset your password:</p>
+          <a href="${url}">Reset Password</a>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        `,
+      });
     },
-  }, // session cookie options 
-  getUserAttributes(databaseUserAttributes) {
-    return {
-      id: databaseUserAttributes.id,
-      username: databaseUserAttributes.username,
-      displayName: databaseUserAttributes.displayName,
-      avatarUrl: databaseUserAttributes.avatarUrl,
-      googleId: databaseUserAttributes.googleId,
-    };
   },
+  session: {
+    expiresIn: 60 * 60 * 24 * 30, // 30 days
+    updateAge: 60 * 60 * 24, // 1 day (how often to update the session expiry)
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
+    },
+  },
+  user: {
+    modelName: "User",
+    fields: {
+      image: "avatarUrl",
+    },
+    additionalFields: {
+      username: {
+        type: "string",
+        required: true,
+        unique: true,
+        input: true,
+      },
+      displayName: {
+        type: "string",
+        required: true,
+        input: true,
+      },
+      bio: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+    },
+  },
+  trustedOrigins: [process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"],
 });
 
-declare module "lucia" {
-  interface Register {
-    Lucia: typeof lucia;
-    DatabaseUserAttributes: DatabaseUserAttributes;
-  }
-}
+// Cached server-side session validation
+export const validateRequest = cache(async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-interface DatabaseUserAttributes {
+  if (!session) {
+    return { user: null, session: null };
+  }
+
+  return {
+    user: {
+      id: session.user.id,
+      username: (session.user as { username?: string }).username || "",
+      displayName: (session.user as { displayName?: string }).displayName || session.user.name,
+      avatarUrl: session.user.image ?? null,
+      email: session.user.email,
+    },
+    session: session.session,
+  };
+});
+
+// Type exports for use in components
+export type AuthUser = {
   id: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
-  googleId: string | null;
-}
+  email: string;
+};
 
-export const google = new Google(
-  process.env.GOOGLE_CLIENT_ID!,
-  process.env.GOOGLE_CLIENT_SECRET!,
-  `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/google`,
-);
-
-export const validateRequest = cache(
-  async (): Promise<
-    { user: User; session: Session } | { user: null; session: null }
-  > => {
-    const sessionId = cookies().get(lucia.sessionCookieName)?.value ?? null;
-
-    if (!sessionId) {
-      return {
-        user: null,
-        session: null,
-      };
-    }
-
-    const result = await lucia.validateSession(sessionId);
-
-    try {
-      if (result.session && result.session.fresh) {
-        const sessionCookie = lucia.createSessionCookie(result.session.id);
-        cookies().set(
-          sessionCookie.name,
-          sessionCookie.value,
-          sessionCookie.attributes,
-        );
-      }
-      if (!result.session) {
-        const sessionCookie = lucia.createBlankSessionCookie();
-        cookies().set(
-          sessionCookie.name,
-          sessionCookie.value,
-          sessionCookie.attributes,
-        );
-      }
-    } catch {}
-
-    return result;
-  },
-);
+export type AuthSession = typeof auth.$Infer.Session.session;

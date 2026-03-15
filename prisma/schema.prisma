@@ -14,38 +14,80 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
+// Better Auth required tables
 model User {
   id                    String         @id
+  name                  String
+  email                 String         @unique
+  emailVerified         Boolean        @default(false)
+  avatarUrl             String?        @map("image")
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // App-specific fields
   username              String         @unique
   displayName           String
-  email                 String?        @unique
-  passwordHash          String?
-  googleId              String?        @unique
-  avatarUrl             String?
   bio                   String?
-  sessions              Session[] // User sessions for authentication
+
+  // Relations for Better Auth
+  sessions              Session[]
+  accounts              Account[]
+
+  // App-specific relations
   posts                 Post[]
   following             Follow[]       @relation("Following")
   followers             Follow[]       @relation("Followers")
   likes                 Like[]
   bookmarks             Bookmark[]
   comments              Comment[]
-  receivedNotifications Notification[] @relation("Recipient") // Notifications received by the user
-  issuedNotifications   Notification[] @relation("Issuer") // Notifications issued by the user
-
-  createdAt DateTime @default(now())
+  receivedNotifications Notification[] @relation("Recipient")
+  issuedNotifications   Notification[] @relation("Issuer")
 
   @@map("users")
 }
 
 model Session {
   id        String   @id
-  userId    String
   expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
 }
 
 model Follow {

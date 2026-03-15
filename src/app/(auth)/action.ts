@@ -1,7 +1,7 @@
 "use server";
 
-import { lucia, validateRequest } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { auth, validateRequest } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function logout() {
@@ -11,15 +11,9 @@ export async function logout() {
     throw new Error("Unauthorized");
   }
 
-  await lucia.invalidateSession(session.id);
-
-  const sessionCookie = lucia.createBlankSessionCookie();
-
-  cookies().set(
-    sessionCookie.name,
-    sessionCookie.value,
-    sessionCookie.attributes,
-  );
+  await auth.api.signOut({
+    headers: await headers(),
+  });
 
   return redirect("/login");
 }
