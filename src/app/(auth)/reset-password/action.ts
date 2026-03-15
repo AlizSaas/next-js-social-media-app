@@ -15,36 +15,49 @@ export async function resetPassword(
   try {
     const { password } = resetPasswordSchema.parse(data);
 
-    // Find all non-expired tokens for comparison
-    const resetTokens = await prisma.passwordResetToken.findMany({
-      where: {
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
-      include: {
-        user: true,
-      },
-    });
+    // Parse the token format: tokenId.tokenSecret
+    const [tokenId, tokenSecret] = token.split(".");
 
-    // Verify the token against all valid tokens
-    let validToken: (typeof resetTokens)[0] | null = null;
-    for (const resetToken of resetTokens) {
-      const isValid = await verify(resetToken.tokenHash, token, {
-        memoryCost: 19456,
-        timeCost: 2,
-        outputLen: 32,
-        parallelism: 1,
-      });
-      if (isValid) {
-        validToken = resetToken;
-        break;
-      }
+    if (!tokenId || !tokenSecret) {
+      return {
+        error: "Invalid reset link. Please request a new one.",
+      };
     }
 
-    if (!validToken) {
+    // Direct lookup by tokenId - O(1) operation
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { id: tokenId },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
       return {
         error: "Invalid or expired reset link. Please request a new one.",
+      };
+    }
+
+    // Check if token has expired
+    if (resetToken.expiresAt < new Date()) {
+      // Clean up expired token
+      await prisma.passwordResetToken.delete({
+        where: { id: tokenId },
+      });
+      return {
+        error: "This reset link has expired. Please request a new one.",
+      };
+    }
+
+    // Verify the secret portion
+    const isValid = await verify(resetToken.tokenHash, tokenSecret, {
+      memoryCost: 19456,
+      timeCost: 2,
+      outputLen: 32,
+      parallelism: 1,
+    });
+
+    if (!isValid) {
+      return {
+        error: "Invalid reset link. Please request a new one.",
       };
     }
 
@@ -59,20 +72,20 @@ export async function resetPassword(
     // Update password and delete the used token
     await prisma.$transaction([
       prisma.user.update({
-        where: { id: validToken.userId },
+        where: { id: resetToken.userId },
         data: { passwordHash },
       }),
       prisma.passwordResetToken.delete({
-        where: { id: validToken.id },
+        where: { id: resetToken.id },
       }),
       // Invalidate all existing sessions for security
       prisma.session.deleteMany({
-        where: { userId: validToken.userId },
+        where: { userId: resetToken.userId },
       }),
     ]);
 
     // Create new session for the user
-    const session = await lucia.createSession(validToken.userId, {});
+    const session = await lucia.createSession(resetToken.userId, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
     cookies().set(
       sessionCookie.name,

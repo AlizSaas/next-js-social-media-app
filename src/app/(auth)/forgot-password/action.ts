@@ -32,11 +32,13 @@ export async function requestPasswordReset(
       where: { userId: user.id },
     });
 
-    // Generate a secure token
-    const token = generateIdFromEntropySize(25); // 40 characters
+    // Generate token: id (for lookup) + secret (for verification)
+    // The id is stored as-is, the secret is hashed
+    const tokenId = generateIdFromEntropySize(10); // 16 characters for lookup
+    const tokenSecret = generateIdFromEntropySize(25); // 40 characters for verification
 
-    // Hash the token before storing
-    const tokenHash = await hash(token, {
+    // Hash only the secret portion
+    const tokenHash = await hash(tokenSecret, {
       memoryCost: 19456,
       timeCost: 2,
       outputLen: 32,
@@ -46,18 +48,19 @@ export async function requestPasswordReset(
     // Token expires in 1 hour
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Store the hashed token
+    // Store with tokenId as the primary key for direct lookup
     await prisma.passwordResetToken.create({
       data: {
+        id: tokenId,
         tokenHash,
         userId: user.id,
         expiresAt,
       },
     });
 
-    // Generate reset link
+    // Combine tokenId and secret in the URL (tokenId.secret format)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const resetLink = `${baseUrl}/reset-password?token=${token}`;
+    const resetLink = `${baseUrl}/reset-password?token=${tokenId}.${tokenSecret}`;
 
     // Send email
     await sendPasswordResetEmail({

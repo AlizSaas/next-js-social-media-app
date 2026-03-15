@@ -152,7 +152,7 @@ enum NotificationType {
 
 model PasswordResetToken {
   id        String   @id @default(cuid())
-  tokenHash String   @unique // Hashed token for security
+  tokenHash String   // Hashed secret portion of token
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
