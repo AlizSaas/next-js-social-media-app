@@ -60,7 +60,7 @@ export async function signUp(
 
     if (!result || !result.user) {
       return {
-        error: "Failed to create account",
+        error: "Failed to create account. Please check your information and try again.",
       };
     }
 

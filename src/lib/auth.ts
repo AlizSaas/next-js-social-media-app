@@ -14,6 +14,11 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       // Dynamic import to avoid build-time errors when RESEND_API_KEY is not set
       const { Resend } = await import("resend");
+      
+      if (!process.env.RESEND_API_KEY) {
+        throw new Error("RESEND_API_KEY environment variable is not set. Password reset emails cannot be sent.");
+      }
+      
       const resend = new Resend(process.env.RESEND_API_KEY);
       
       await resend.emails.send({
