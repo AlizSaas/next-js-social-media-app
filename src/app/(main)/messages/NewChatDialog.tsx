@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import UserAvatar from "@/components/UserAvatar";
 import useDebounce from "@/hooks/useDebounce";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Loader2, SearchIcon, X } from "lucide-react";
+import { Check, Loader2, SearchIcon, X, Users } from "lucide-react";
 import { useState } from "react";
 import { UserResponse } from "stream-chat";
 import { DefaultStreamChatGenerics, useChatContext } from "stream-chat-react";
@@ -88,22 +88,22 @@ export default function NewChatDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle>New chat</DialogTitle>
+      <DialogContent className="gap-0 bg-card p-0">
+        <DialogHeader className="border-b px-6 py-4">
+          <DialogTitle className="text-lg">New Message</DialogTitle>
         </DialogHeader>
         <div>
-          <div className="group relative">
+          <div className="group relative border-b">
             <SearchIcon className="absolute left-5 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground group-focus-within:text-primary" />
             <input
               placeholder="Search users..."
-              className="h-12 w-full pe-4 ps-14 focus:outline-none"
+              className="h-12 w-full bg-transparent pe-4 ps-14 focus:outline-none"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
           {!!selectedUsers.length && (
-            <div className="mt-4 flex flex-wrap gap-2 p-2">
+            <div className="flex flex-wrap gap-2 border-b p-3">
               {selectedUsers.map((user) => (
                 <SelectedUserTag
                   key={user.id}
@@ -117,8 +117,7 @@ export default function NewChatDialog({
               ))}
             </div>
           )}
-          <hr />
-          <div className="h-96 overflow-y-auto">
+          <div className="h-80 overflow-y-auto">
             {isSuccess &&
               data.users.map((user) => (
                 <UserResult
@@ -135,25 +134,35 @@ export default function NewChatDialog({
                 />
               ))}
             {isSuccess && !data.users.length && (
-              <p className="my-3 text-center text-muted-foreground">
-                No users found. Try a different name.
-              </p>
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                <Users className="size-10 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {searchInput
+                    ? "No users found. Try a different name."
+                    : "Start typing to search for users"}
+                </p>
+              </div>
             )}
-            {isFetching && <Loader2 className="mx-auto my-3 animate-spin" />}
+            {isFetching && (
+              <div className="flex justify-center py-8">
+                <Loader2 className="size-6 animate-spin text-primary" />
+              </div>
+            )}
             {isError && (
-              <p className="my-3 text-center text-destructive">
+              <p className="py-8 text-center text-destructive">
                 An error occurred while loading users.
               </p>
             )}
           </div>
         </div>
-        <DialogFooter className="px-6 pb-6">
+        <DialogFooter className="border-t px-6 py-4">
           <LoadingButton
             disabled={!selectedUsers.length}
             loading={mutation.isPending}
             onClick={() => mutation.mutate()}
+            className="w-full sm:w-auto"
           >
-            Start chat
+            Start Chat
           </LoadingButton>
         </DialogFooter>
       </DialogContent>
@@ -170,17 +179,21 @@ interface UserResultProps {
 function UserResult({ user, selected, onClick }: UserResultProps) {
   return (
     <button
-      className="flex w-full items-center justify-between px-4 py-2.5 transition-colors hover:bg-muted/50"
+      className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-muted/50"
       onClick={onClick}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <UserAvatar avatarUrl={user.image} />
         <div className="flex flex-col text-start">
-          <p className="font-bold">{user.name}</p>
-          <p className="text-muted-foreground">@{user.username}</p>
+          <p className="font-semibold">{user.name}</p>
+          <p className="text-sm text-muted-foreground">@{user.username}</p>
         </div>
       </div>
-      {selected && <Check className="size-5 text-green-500" />}
+      {selected && (
+        <div className="flex size-6 items-center justify-center rounded-full bg-primary">
+          <Check className="size-4 text-primary-foreground" />
+        </div>
+      )}
     </button>
   );
 }
@@ -194,11 +207,11 @@ function SelectedUserTag({ user, onRemove }: SelectedUserTagProps) {
   return (
     <button
       onClick={onRemove}
-      className="flex items-center gap-2 rounded-full border p-1 hover:bg-muted/50"
+      className="flex items-center gap-2 rounded-full bg-muted px-2 py-1 transition-colors hover:bg-muted/80"
     >
       <UserAvatar avatarUrl={user.image} size={24} />
-      <p className="font-bold">{user.name}</p>
-      <X className="mx-2 size-5 text-muted-foreground" />
+      <span className="text-sm font-medium">{user.name}</span>
+      <X className="size-4 text-muted-foreground hover:text-foreground" />
     </button>
   );
 }

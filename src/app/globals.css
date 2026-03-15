@@ -74,3 +74,162 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Stream Chat Custom Styling - Light Theme */
+.str-chat {
+  --str-chat__font-family: inherit;
+  --str-chat__primary-color: hsl(142.1 76.2% 36.3%);
+  --str-chat__active-primary-color: hsl(142.1 76.2% 30%);
+  --str-chat__surface-color: hsl(0 0% 100%);
+  --str-chat__secondary-surface-color: hsl(240 4.8% 95.9%);
+  --str-chat__primary-surface-color: hsl(0 0% 100%);
+  --str-chat__primary-surface-color-low-emphasis: hsl(240 4.8% 95.9%);
+  --str-chat__border-radius-circle: 9999px;
+  --str-chat__avatar-border-radius: 9999px;
+  --str-chat__message-textarea-border-radius: 1rem;
+  --str-chat__channel-preview-active-background: hsl(240 4.8% 95.9%);
+  --str-chat__channel-preview-hover-background: hsl(240 4.8% 95.9%);
+  --str-chat__text-color: hsl(240 10% 3.9%);
+  --str-chat__secondary-text-color: hsl(240 3.8% 46.1%);
+}
+
+.str-chat__theme-light {
+  --str-chat__message-bubble-background: hsl(240 4.8% 95.9%);
+  --str-chat__own-message-bubble-background: hsl(142.1 76.2% 36.3%);
+  --str-chat__own-message-bubble-color: hsl(355.7 100% 97.3%);
+}
+
+/* Stream Chat Custom Styling - Dark Theme */
+.str-chat__theme-dark {
+  --str-chat__primary-color: hsl(142.1 70.6% 45.3%);
+  --str-chat__active-primary-color: hsl(142.1 70.6% 38%);
+  --str-chat__surface-color: hsl(24 9.8% 10%);
+  --str-chat__secondary-surface-color: hsl(0 0% 15%);
+  --str-chat__primary-surface-color: hsl(24 9.8% 10%);
+  --str-chat__primary-surface-color-low-emphasis: hsl(0 0% 15%);
+  --str-chat__channel-preview-active-background: hsl(0 0% 15%);
+  --str-chat__channel-preview-hover-background: hsl(0 0% 15%);
+  --str-chat__text-color: hsl(0 0% 95%);
+  --str-chat__secondary-text-color: hsl(240 5% 64.9%);
+  --str-chat__message-bubble-background: hsl(0 0% 15%);
+  --str-chat__own-message-bubble-background: hsl(142.1 70.6% 45.3%);
+  --str-chat__own-message-bubble-color: hsl(144.9 80.4% 10%);
+}
+
+/* Stream Chat Component Overrides */
+.str-chat__channel-list {
+  background: transparent;
+}
+
+.str-chat__channel-header {
+  background: transparent;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.75rem 1rem;
+}
+
+.str-chat__message-input {
+  background: transparent;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.str-chat__input-flat {
+  border-radius: 1rem;
+}
+
+.str-chat__message-input-inner {
+  gap: 0.5rem;
+}
+
+.str-chat__message-textarea {
+  border-radius: 1rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.str-chat__channel-preview-messenger {
+  border-radius: 0.5rem;
+  margin: 0.25rem 0.5rem;
+}
+
+.str-chat__channel-preview-messenger--active {
+  background: hsl(var(--muted));
+}
+
+.str-chat__message-simple {
+  padding: 0.5rem 1rem;
+}
+
+.str-chat__message-simple--me .str-chat__message-text-inner {
+  border-radius: 1rem 1rem 0.25rem 1rem;
+}
+
+.str-chat__message-simple:not(.str-chat__message-simple--me) .str-chat__message-text-inner {
+  border-radius: 1rem 1rem 1rem 0.25rem;
+}
+
+.str-chat__message-text-inner {
+  padding: 0.75rem 1rem;
+}
+
+.str-chat__avatar {
+  flex-shrink: 0;
+}
+
+.str-chat__channel-search {
+  padding: 0.5rem;
+}
+
+.str-chat__channel-search-input {
+  border-radius: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Hide some default elements for cleaner UI */
+.str-chat__send-button {
+  background: hsl(var(--primary)) !important;
+  border-radius: 9999px !important;
+  padding: 0.5rem !important;
+}
+
+.str-chat__send-button svg {
+  fill: hsl(var(--primary-foreground)) !important;
+}
+
+.str-chat__message-input-buttons {
+  gap: 0.25rem;
+}
+
+/* Message list scrollbar styling */
+.str-chat__list {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+.str-chat__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.str-chat__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.str-chat__list::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 3px;
+}
+
+/* Timestamp styling */
+.str-chat__message-simple-timestamp {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Empty state styling */
+.str-chat__channel-empty-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+}
