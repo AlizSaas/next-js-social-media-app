@@ -6,11 +6,63 @@ import { forgotPasswordSchema, ForgotPasswordValues } from "@/lib/validation";
 import { hash } from "@node-rs/argon2";
 import { generateIdFromEntropySize } from "lucia";
 
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS_PER_WINDOW = 3;
+
+async function checkRateLimit(email: string): Promise<boolean> {
+  const normalizedEmail = email.toLowerCase();
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+
+  // Count recent password reset requests for this email
+  const recentRequests = await prisma.passwordResetRateLimit.count({
+    where: {
+      email: normalizedEmail,
+      createdAt: {
+        gte: windowStart,
+      },
+    },
+  });
+
+  return recentRequests < MAX_REQUESTS_PER_WINDOW;
+}
+
+async function recordRateLimitAttempt(email: string): Promise<void> {
+  const normalizedEmail = email.toLowerCase();
+  
+  // Record the attempt
+  await prisma.passwordResetRateLimit.create({
+    data: {
+      email: normalizedEmail,
+    },
+  });
+
+  // Clean up old rate limit records (older than 1 hour)
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+  await prisma.passwordResetRateLimit.deleteMany({
+    where: {
+      createdAt: {
+        lt: windowStart,
+      },
+    },
+  });
+}
+
 export async function requestPasswordReset(
   data: ForgotPasswordValues,
 ): Promise<{ error?: string; success?: boolean }> {
   try {
     const { email } = forgotPasswordSchema.parse(data);
+
+    // Check rate limit before processing
+    const withinRateLimit = await checkRateLimit(email);
+    if (!withinRateLimit) {
+      return {
+        error: "Too many password reset requests. Please try again later.",
+      };
+    }
+
+    // Record this attempt for rate limiting (before any other processing)
+    await recordRateLimitAttempt(email);
 
     const user = await prisma.user.findFirst({
       where: {
