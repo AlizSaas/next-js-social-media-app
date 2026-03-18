@@ -36,15 +36,18 @@ async function recordRateLimitAttempt(email: string): Promise<void> {
     },
   });
 
-  // Clean up old rate limit records (older than 1 hour)
-  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
-  await prisma.passwordResetRateLimit.deleteMany({
-    where: {
-      createdAt: {
-        lt: windowStart,
+  // Probabilistically clean up old records (1 in 10 requests)
+  // This reduces database load while still keeping the table clean
+  if (Math.random() < 0.1) {
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+    await prisma.passwordResetRateLimit.deleteMany({
+      where: {
+        createdAt: {
+          lt: windowStart,
+        },
       },
-    },
-  });
+    });
+  }
 }
 
 export async function requestPasswordReset(
@@ -61,7 +64,9 @@ export async function requestPasswordReset(
       };
     }
 
-    // Record this attempt for rate limiting (before any other processing)
+    // Record this attempt for rate limiting
+    // This is done early to prevent timing-based enumeration attacks
+    // (ensures consistent response time regardless of whether user exists)
     await recordRateLimitAttempt(email);
 
     const user = await prisma.user.findFirst({
