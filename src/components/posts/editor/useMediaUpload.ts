@@ -13,8 +13,8 @@ export default function useMediaUpload() {
   const { toast } = useToast();
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-
   const [uploadProgress, setUploadProgress] = useState<number>();
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const { startUpload, isUploading } = useUploadThing("attachment", {
     async onBeforeUploadBegin(files) {
@@ -28,40 +28,43 @@ export default function useMediaUpload() {
             { type: compressed.type },
           );
         }),
-      ); // Compress images and rename files to avoid conflicts
+      );
+
+      setIsCompressing(false);
 
       setAttachments((prev) => [
         ...prev,
         ...processedFiles.map((file) => ({ file, isUploading: true })),
-      ]); // Add new attachments to the end of the state array
+      ]);
 
       return processedFiles;
     },
     
-    onUploadProgress: setUploadProgress, // Update upload progress state 
+    onUploadProgress: setUploadProgress,
     onClientUploadComplete(res) {
       setAttachments((prev) =>
         prev.map((a) => {
-          const uploadResult = res.find((r) => r.name === a.file.name); // Find the upload result for this attachment 
+          const uploadResult = res.find((r) => r.name === a.file.name);
 
           if (!uploadResult) return a;
 
           return {
             ...a,
-            mediaId: uploadResult.serverData.mediaId, // Assign the mediaId from the upload result
-            isUploading: false, // Mark as no longer uploading
+            mediaId: uploadResult.serverData.mediaId,
+            isUploading: false,
           };
         }),
       );
     },
     onUploadError(e) {
-      setAttachments((prev) => prev.filter((a) => !a.isUploading)); // Remove failed uploads from state
+      setAttachments((prev) => prev.filter((a) => !a.isUploading));
+      setIsCompressing(false);
       
-  let message = "Upload failed";
+      let message = "Upload failed";
 
-  if (e.message.includes("FileSizeMismatch")) {
-    message = "File too big. Images are auto-compressed; max 64MB for videos.";
-  }
+      if (e.message.includes("FileSizeMismatch")) {
+        message = "File too big. Images are auto-compressed; max 64MB for videos.";
+      }
 
       toast({
         variant: "destructive",
@@ -71,7 +74,7 @@ export default function useMediaUpload() {
   });
 
   function handleStartUpload(files: File[]) {
-    if (isUploading) {
+    if (isUploading || isCompressing) {
       toast({
         variant: "destructive",
         description: "Please wait for the current upload to finish.",
@@ -87,22 +90,25 @@ export default function useMediaUpload() {
       return;
     }
 
+    setIsCompressing(true);
     startUpload(files);
   }
 
   function removeAttachment(fileName: string) {
-    setAttachments((prev) => prev.filter((a) => a.file.name !== fileName)); // Remove attachment by file name 
+    setAttachments((prev) => prev.filter((a) => a.file.name !== fileName));
   }
 
   function reset() {
     setAttachments([]);
     setUploadProgress(undefined);
+    setIsCompressing(false);
   }
 
   return {
     startUpload: handleStartUpload,
     attachments,
     isUploading,
+    isCompressing,
     uploadProgress,
     removeAttachment,
     reset,
