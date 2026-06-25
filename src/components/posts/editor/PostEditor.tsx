@@ -33,11 +33,16 @@ export default function PostEditor() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: startUpload,
-    noClick: true,
-    noKeyboard: true,
   });
 
-  const { onClick, ...rootProps } = getRootProps();
+  const {
+    onClick,
+    onKeyDown,
+    onFocus,
+    onBlur,
+    tabIndex,
+    ...rootProps
+  } = getRootProps() as Record<string, unknown>;
 
   const editor = useEditor({
     extensions: [
