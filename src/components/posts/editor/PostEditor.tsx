@@ -11,7 +11,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
 import { ImageIcon, Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { ClipboardEvent, useRef } from "react";
+import { ClipboardEvent, useMemo, useRef } from "react";
 import { useSubmitPostMutation } from "./mutation";
 import "./styles.css";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
@@ -28,10 +28,13 @@ export default function PostEditor() {
     uploadProgress,
     removeAttachment,
     reset: resetMediaUploads,
+    isCompressing,
   } = useMediaUpload();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: startUpload,
+    noClick: true,
+    noKeyboard: true,
   });
 
   const { onClick, ...rootProps } = getRootProps();
@@ -99,6 +102,12 @@ export default function PostEditor() {
         />
       )}
       <div className="flex items-center justify-end gap-3">
+        {isCompressing && (
+          <>
+            <span className="text-sm">Compressing...</span>
+            <Loader2 className="size-5 animate-spin text-primary" />
+          </>
+        )}
         {isUploading && (
           <>
             <span className="text-sm">{uploadProgress ?? 0}%</span>
@@ -107,12 +116,12 @@ export default function PostEditor() {
         )}
         <AddAttachmentsButton
           onFilesSelected={startUpload}
-          disabled={isUploading || attachments.length >= 5}
+          disabled={isUploading || isCompressing || attachments.length >= 5}
         />
         <LoadingButton
           onClick={onSubmit}
           loading={mutation.isPending}
-          disabled={!input.trim() || isUploading}
+          disabled={!input.trim() || isUploading || isCompressing}
           className="min-w-20"
         >
           Post
@@ -198,7 +207,7 @@ function AttachmentPreview({
   attachment: { file, mediaId, isUploading },
   onRemoveClick,
 }: AttachmentPreviewProps) {
-  const src = URL.createObjectURL(file); // Create a local URL for the file 
+  const src = useMemo(() => URL.createObjectURL(file), [file]);
 
   return (
     <div
