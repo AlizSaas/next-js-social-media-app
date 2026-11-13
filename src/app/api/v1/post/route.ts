@@ -1,9 +1,7 @@
+import { apiPostSelect, parseLimit } from "@/lib/apiPost";
 import prisma from "@/lib/prisma";
 import { requireApiKey } from "@/lib/requireApiKey";
 import { NextRequest } from "next/server";
-
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 50;
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,32 +11,10 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
 
     const cursor = searchParams.get("cursor") || undefined;
-
-    const parsedLimit = Number(searchParams.get("limit"));
-    const limit =
-      Number.isInteger(parsedLimit) && parsedLimit > 0
-        ? Math.min(parsedLimit, MAX_LIMIT)
-        : DEFAULT_LIMIT;
+    const limit = parseLimit(searchParams);
 
     const posts = await prisma.post.findMany({
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        user: {
-          select: {
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-          },
-        },
-        attachments: {
-          select: { url: true, type: true },
-        },
-        _count: {
-          select: { likes: true, comments: true },
-        },
-      },
+      select: apiPostSelect,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
