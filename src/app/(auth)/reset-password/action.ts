@@ -82,6 +82,10 @@ export async function resetPassword(
       prisma.session.deleteMany({
         where: { userId: resetToken.userId },
       }),
+      prisma.apiKey.updateMany({
+        where: { userId: resetToken.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
     ]);
 
     // Create new session for the user

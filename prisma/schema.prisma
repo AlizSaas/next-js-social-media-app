@@ -34,10 +34,25 @@ model User {
   receivedNotifications Notification[] @relation("Recipient") // Notifications received by the user
   issuedNotifications   Notification[] @relation("Issuer") // Notifications issued by the user
   passwordResetTokens   PasswordResetToken[] // Password reset tokens
+  apiKeys               ApiKey[]
 
   createdAt DateTime @default(now())
 
   @@map("users")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String    @unique
+  prefix     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@map("api_keys")
 }
 
 model Session {

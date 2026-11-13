@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:api-keys": "node --test",
     "postinstall": "prisma generate"
   },
   "dependencies": {

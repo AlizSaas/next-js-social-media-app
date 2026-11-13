@@ -13,6 +13,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
+import ApiCreation from "./ApiCreation";
 
 interface PageProps {
   params: { username: string };
@@ -114,8 +115,10 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             <FollowerCount userId={user.id} initialState={followerInfo} />
           </div>
         </div>
-        {user.id === loggedInUserId ? (
+        {user.id === loggedInUserId ? ( <> 
           <EditProfileButton user={user} />
+          <ApiCreation user={user} />
+          </>
         ) : (
           <FollowButton userId={user.id} initialState={followerInfo} />
         )}
